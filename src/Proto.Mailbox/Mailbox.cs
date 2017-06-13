@@ -145,7 +145,9 @@ namespace Proto.Mailbox
                         if (!t.IsCompleted)
                         {
                             // if task didn't complete immediately, halt processing and reschedule a new run when task completes
+#pragma warning disable 4014
                             t.ContinueWith(RescheduleOnTaskCompleteAsync, msg);
+#pragma warning restore 4014
                             return false;
                         }
                         for (var si = 0; si < _stats.Length; si++)
@@ -169,7 +171,9 @@ namespace Proto.Mailbox
                         if (!t.IsCompleted)
                         {
                             // if task didn't complete immediately, halt processing and reschedule a new run when task completes
+#pragma warning disable 4014
                             t.ContinueWith(RescheduleOnTaskCompleteAsync, msg);
+#pragma warning restore 4014
                             return false;
                         }
                         for (var si = 0; si < _stats.Length; si++)
