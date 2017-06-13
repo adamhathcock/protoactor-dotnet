@@ -44,23 +44,23 @@ namespace Proto
             }
         }
 
-        public async Task SendAsync(object message)
+        public Task SendAsync(object message)
         {
             var reff = Ref ?? ProcessRegistry.Instance.Get(this);
-            await reff.SendUserMessageAsync(this, message);
+            return reff.SendUserMessageAsync(this, message);
         }
 
-        public async Task SendSystemMessageAsync(object sys)
+        public Task SendSystemMessageAsync(object sys)
         {
             var reff = Ref ?? ProcessRegistry.Instance.Get(this);
-            await reff.SendSystemMessageAsync(this, sys);
+            return reff.SendSystemMessageAsync(this, sys);
         }
 
-        public async Task RequestAsync(object message, PID sender)
+        public Task RequestAsync(object message, PID sender)
         {
             var reff = Ref ?? ProcessRegistry.Instance.Get(this);
             var messageEnvelope = new MessageEnvelope(message,sender,null);
-            await reff.SendUserMessageAsync(this, messageEnvelope);
+            return reff.SendUserMessageAsync(this, messageEnvelope);
         }
         
         public Task<T> RequestAsync<T>(object message, TimeSpan timeout)

@@ -39,14 +39,16 @@ namespace Proto
         }
 
 
-        public override async Task SendUserMessageAsync(PID pid, object message)
+        public override Task SendUserMessageAsync(PID pid, object message)
         {
-            await Mailbox.PostUserMessageAsync(message);
+            Mailbox.PostUserMessage(message);
+            return Actor.Done;
         }
 
-        public override async Task SendSystemMessageAsync(PID pid, object message)
+        public override Task SendSystemMessageAsync(PID pid, object message)
         {
-            await Mailbox.PostSystemMessageAsync(message);
+            Mailbox.PostSystemMessage(message);
+            return Actor.Done;
         }
 
         public override async Task StopAsync(PID pid)

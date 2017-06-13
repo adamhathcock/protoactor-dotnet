@@ -108,21 +108,21 @@ namespace Proto
             return Sender.SendAsync(message);
         }
 
-        public Task<PID> SpawnAsync(Props props)
+        public PID Spawn(Props props)
         {
             var id = ProcessRegistry.Instance.NextId();
-            return SpawnNamedAsync(props, id);
+            return SpawnNamed(props, id);
         }
 
-        public Task<PID> SpawnPrefixAsync(Props props, string prefix)
+        public PID SpawnPrefix(Props props, string prefix)
         {
             var name = prefix + ProcessRegistry.Instance.NextId();
-            return SpawnNamedAsync(props, name);
+            return SpawnNamed(props, name);
         }
 
-        public async Task<PID> SpawnNamedAsync(Props props, string name)
+        public PID SpawnNamed(Props props, string name)
         {
-            var pid = await props.SpawnAsync($"{Self.Id}/{name}", Self);
+            var pid = props.Spawn($"{Self.Id}/{name}", Self);
             if (_children == null)
             {
                 _children = new FastSet<PID>();
@@ -291,9 +291,9 @@ namespace Proto
             return c.Actor.ReceiveAsync(context);
         }
 
-        internal static async Task DefaultSender(ISenderContext context, PID target, MessageEnvelope envelope)
+        internal static Task DefaultSender(ISenderContext context, PID target, MessageEnvelope envelope)
         {
-            await target.Ref.SendUserMessageAsync(target, envelope);
+            return target.Ref.SendUserMessageAsync(target, envelope);
         }
 
         private Task ProcessMessageAsync(object msg)
@@ -533,7 +533,7 @@ namespace Proto
             var msg = _message;
             var cont = new Continuation(() => action(target), msg);
 
-            target.ContinueWith(async t => { await Self.SendSystemMessageAsync(cont); });
+            target.ContinueWith(t => { Self.SendSystemMessageAsync(cont); });
         }
     }
 }

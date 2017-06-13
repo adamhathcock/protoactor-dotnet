@@ -21,7 +21,7 @@ namespace Proto.Mailbox
     public interface IDispatcher
     {
         int Throughput { get; }
-        Task ScheduleAsync(Func<Task> runner);
+        void Schedule(Func<Task> runner);
     }
 
     public static class Dispatchers
@@ -34,9 +34,9 @@ namespace Proto.Mailbox
     {
         public int Throughput => 300;
 
-        public async Task ScheduleAsync(Func<Task> runner)
+        public void Schedule(Func<Task> runner)
         {
-            await runner();
+            runner().Wait();
         }
     }
 
@@ -69,10 +69,9 @@ namespace Proto.Mailbox
             Throughput = 300;
         }
 
-        public async Task ScheduleAsync(Func<Task> runner)
+        public void Schedule(Func<Task> runner)
         {
-            //await the first Task to ensure dispatching happened.  Awaiting the second means blocking until the action happened.
-            await Task.Factory.StartNew(runner, CancellationToken.None, TaskCreationOptions.None, _scheduler);
+            Task.Factory.StartNew(runner, CancellationToken.None, TaskCreationOptions.None, _scheduler);
         }
 
         public int Throughput { get; set; }

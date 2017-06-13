@@ -18,8 +18,8 @@ namespace Proto.Mailbox
 
     public interface IMailbox
     {
-        Task PostUserMessageAsync(object msg);
-        Task PostSystemMessageAsync(object msg);
+        void PostUserMessage(object msg);
+        void PostSystemMessage(object msg);
         void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher);
         void Start();
     }
@@ -60,24 +60,24 @@ namespace Proto.Mailbox
             _stats = stats ?? new IMailboxStatistics[0];
         }
 
-        public async Task PostUserMessageAsync(object msg)
+        public void PostUserMessage(object msg)
         {
             _userMailbox.Push(msg);
             for (var i = 0; i < _stats.Length; i++)
             {
                 _stats[i].MessagePosted(msg);
             }
-            await ScheduleAsync();
+            Schedule();
         }
 
-        public async Task PostSystemMessageAsync(object msg)
+        public void PostSystemMessage(object msg)
         {
             _systemMessages.Push(msg);
             for (var i = 0; i < _stats.Length; i++)
             {
                 _stats[i].MessagePosted(msg);
             }
-            await ScheduleAsync();
+            Schedule();
         }
 
         public void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher)
@@ -96,19 +96,17 @@ namespace Proto.Mailbox
 
         private async Task RunAsync()
         {
-            var done = await ProcessMessagesAsync();
+            var done = await ProcessMessages();
 
             if (!done)
-            {
                 // mailbox is halted, awaiting completion of a message task, upon which mailbox will be rescheduled
                 return;
-            }
 
             Interlocked.Exchange(ref _status, MailboxStatus.Idle);
 
             if (_systemMessages.HasMessages || (!_suspended && _userMailbox.HasMessages))
             {
-                await ScheduleAsync();
+                Schedule();
             }
             else
             {
@@ -119,7 +117,7 @@ namespace Proto.Mailbox
             }
         }
 
-        private async Task<bool> ProcessMessagesAsync()
+        private async Task<bool> ProcessMessages()
         {
             object msg = null;
             try
@@ -146,7 +144,7 @@ namespace Proto.Mailbox
                         {
                             // if task didn't complete immediately, halt processing and reschedule a new run when task completes
 #pragma warning disable 4014
-                            t.ContinueWith(RescheduleOnTaskCompleteAsync, msg);
+                            t.ContinueWith(RescheduleOnTaskComplete, msg);
 #pragma warning restore 4014
                             return false;
                         }
@@ -172,7 +170,7 @@ namespace Proto.Mailbox
                         {
                             // if task didn't complete immediately, halt processing and reschedule a new run when task completes
 #pragma warning disable 4014
-                            t.ContinueWith(RescheduleOnTaskCompleteAsync, msg);
+                            t.ContinueWith(RescheduleOnTaskComplete, msg);
 #pragma warning restore 4014
                             return false;
                         }
@@ -194,7 +192,7 @@ namespace Proto.Mailbox
             return true;
         }
 
-        private async Task RescheduleOnTaskCompleteAsync(Task task, object message)
+        private async Task RescheduleOnTaskComplete(Task task, object message)
         {
             if (task.IsFaulted)
             {
@@ -207,15 +205,15 @@ namespace Proto.Mailbox
                     _stats[si].MessageReceived(message);
                 }
             }
-            await _dispatcher.ScheduleAsync(RunAsync);
+            _dispatcher.Schedule(RunAsync);
         }
 
 
-        protected async Task ScheduleAsync()
+        protected void Schedule()
         {
             if (Interlocked.CompareExchange(ref _status, MailboxStatus.Busy, MailboxStatus.Idle) == MailboxStatus.Idle)
             {
-                await _dispatcher.ScheduleAsync(RunAsync);
+                _dispatcher.Schedule(RunAsync);
             }
         }
     }

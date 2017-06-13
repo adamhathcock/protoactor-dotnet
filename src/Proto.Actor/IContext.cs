@@ -59,7 +59,7 @@ namespace Proto
         /// </summary>
         /// <param name="props">The Props used to spawn the actor</param>
         /// <returns>The PID of the child actor</returns>
-        Task<PID> SpawnAsync(Props props);
+        PID Spawn(Props props);
 
         /// <summary>
         ///     Spawns a new child actor based on props and named using a prefix followed by a unique ID.
@@ -67,7 +67,7 @@ namespace Proto
         /// <param name="props">The Props used to spawn the actor</param>
         /// <param name="prefix">The prefix for the actor name</param>
         /// <returns>The PID of the child actor</returns>
-        Task<PID> SpawnPrefixAsync(Props props, string prefix);
+        PID SpawnPrefix(Props props, string prefix);
 
         /// <summary>
         ///     Spawns a new child actor based on props and named using the specified name.
@@ -75,7 +75,7 @@ namespace Proto
         /// <param name="props">The Props used to spawn the actor</param>
         /// <param name="name">The actor name</param>
         /// <returns>The PID of the child actor</returns>
-        Task<PID> SpawnNamedAsync(Props props, string name);
+        PID SpawnNamed(Props props, string name);
 
         /// <summary>
         ///     Registers the actor as a watcher for the specified PID.

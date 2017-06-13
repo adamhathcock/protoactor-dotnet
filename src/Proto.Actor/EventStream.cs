@@ -71,11 +71,11 @@ namespace Proto
         }
 
 
-        public async Task PublishAsync(T msg)
+        public Task PublishAsync(T msg)
         {
             foreach (var sub in _subscriptions)
             {
-                await sub.Value.Dispatcher.ScheduleAsync(() =>
+                sub.Value.Dispatcher.Schedule(() =>
                 {
                     try
                     {
@@ -88,6 +88,7 @@ namespace Proto
                     return Actor.Done;
                 });
             }
+            return Actor.Done;
         }
 
         internal void Unsubscribe(Guid id)

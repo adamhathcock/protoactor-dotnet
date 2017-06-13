@@ -32,21 +32,21 @@ namespace Proto
 
         public static Props FromFunc(Receive receive) => FromProducer(() => new EmptyActor(receive));
 
-        public static Task<PID> SpawnAsync(Props props)
+        public static PID Spawn(Props props)
         {
             var name = ProcessRegistry.Instance.NextId();
-            return SpawnNamedAsync(props, name);
+            return SpawnNamed(props, name);
         }
 
-        public static Task<PID> SpawnPrefixAsync(Props props, string prefix)
+        public static PID SpawnPrefix(Props props, string prefix)
         {
             var name = prefix + ProcessRegistry.Instance.NextId();
-            return SpawnNamedAsync(props, name);
+            return SpawnNamed(props, name);
         }
 
-        public static Task<PID> SpawnNamedAsync(Props props, string name)
+        public static PID SpawnNamed(Props props, string name)
         {
-            return props.SpawnAsync(name, null);
+            return props.Spawn(name, null);
         }
     }
 
