@@ -71,11 +71,11 @@ namespace Proto
         }
 
 
-        public void Publish(T msg)
+        public async Task PublishAsync(T msg)
         {
             foreach (var sub in _subscriptions)
             {
-                sub.Value.Dispatcher.Schedule(() =>
+                await sub.Value.Dispatcher.ScheduleAsync(() =>
                 {
                     try
                     {

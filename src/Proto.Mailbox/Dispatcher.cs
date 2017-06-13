@@ -14,14 +14,14 @@ namespace Proto.Mailbox
     {
         Task InvokeSystemMessageAsync(object msg);
         Task InvokeUserMessageAsync(object msg);
-        void EscalateFailure(Exception reason, object message);
+        Task EscalateFailureAsync(Exception reason, object message);
     }
 
 
     public interface IDispatcher
     {
         int Throughput { get; }
-        void Schedule(Func<Task> runner);
+        Task ScheduleAsync(Func<Task> runner);
     }
 
     public static class Dispatchers
@@ -34,43 +34,45 @@ namespace Proto.Mailbox
     {
         public int Throughput => 300;
 
-        public void Schedule(Func<Task> runner)
+        public async Task ScheduleAsync(Func<Task> runner)
         {
-            runner().Wait();
+            await runner();
         }
     }
 
-    public sealed class ThreadPoolDispatcher : IDispatcher
+    public sealed class ThreadPoolDispatcher : TaskSchedulerDispatcher
     {
         public ThreadPoolDispatcher()
+            : base(TaskScheduler.Default)
         {
-            Throughput = 300;
         }
-
-        public void Schedule(Func<Task> runner)
-        {
-            Task.Factory.StartNew(runner, TaskCreationOptions.None);
-        }
-
-        public int Throughput { get; set; }
     }
 
     /// <summary>
     /// This must be created on the UI thread after a SynhronizationContext has been created.  Otherwise, an error will occur.
     /// </summary>
-    public sealed class CurrentSynchronizationContextDispatcher : IDispatcher
+    public sealed class CurrentSynchronizationContextDispatcher : TaskSchedulerDispatcher
+    {
+        public CurrentSynchronizationContextDispatcher()
+            : base(TaskScheduler.FromCurrentSynchronizationContext())
+        {
+        }
+    }
+
+    public class TaskSchedulerDispatcher : IDispatcher
     {
         private readonly TaskScheduler _scheduler;
 
-        public CurrentSynchronizationContextDispatcher()
+        public TaskSchedulerDispatcher(TaskScheduler taskScheduler)
         {
-            _scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            _scheduler = taskScheduler;
             Throughput = 300;
         }
 
-        public void Schedule(Func<Task> runner)
+        public async Task ScheduleAsync(Func<Task> runner)
         {
-            Task.Factory.StartNew(runner, CancellationToken.None, TaskCreationOptions.None, _scheduler);
+            //await the first Task to ensure dispatching happened.  Awaiting the second means blocking until the action happened.
+            await Task.Factory.StartNew(runner, CancellationToken.None, TaskCreationOptions.None, _scheduler);
         }
 
         public int Throughput { get; set; }

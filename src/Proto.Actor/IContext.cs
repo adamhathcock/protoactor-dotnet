@@ -47,7 +47,7 @@ namespace Proto
         ///     Sends a response to the current Sender. If the Sender is null, the actor will panic.
         /// </summary>
         /// <param name="message">The message to send</param>
-        void Respond(object message);
+        Task RespondAsync(object message);
 
         /// <summary>
         ///     Stashes the current message on a stack for re-processing when the actor restarts.
@@ -59,7 +59,7 @@ namespace Proto
         /// </summary>
         /// <param name="props">The Props used to spawn the actor</param>
         /// <returns>The PID of the child actor</returns>
-        PID Spawn(Props props);
+        Task<PID> SpawnAsync(Props props);
 
         /// <summary>
         ///     Spawns a new child actor based on props and named using a prefix followed by a unique ID.
@@ -67,7 +67,7 @@ namespace Proto
         /// <param name="props">The Props used to spawn the actor</param>
         /// <param name="prefix">The prefix for the actor name</param>
         /// <returns>The PID of the child actor</returns>
-        PID SpawnPrefix(Props props, string prefix);
+        Task<PID> SpawnPrefixAsync(Props props, string prefix);
 
         /// <summary>
         ///     Spawns a new child actor based on props and named using the specified name.
@@ -75,19 +75,19 @@ namespace Proto
         /// <param name="props">The Props used to spawn the actor</param>
         /// <param name="name">The actor name</param>
         /// <returns>The PID of the child actor</returns>
-        PID SpawnNamed(Props props, string name);
+        Task<PID> SpawnNamedAsync(Props props, string name);
 
         /// <summary>
         ///     Registers the actor as a watcher for the specified PID.
         /// </summary>
         /// <param name="pid">The PID to watch</param>
-        void Watch(PID pid);
+        Task WatchAsync(PID pid);
 
         /// <summary>
         ///     Unregisters the actor as a watcher for the specified PID.
         /// </summary>
         /// <param name="pid">The PID to unwatch</param>
-        void Unwatch(PID pid);
+        Task UnwatchAsync(PID pid);
 
         /// <summary>
         ///     Sets the receive timeout. If no message is received for the given duration, a ReceiveTimeout message will be sent
@@ -98,8 +98,8 @@ namespace Proto
         void SetReceiveTimeout(TimeSpan duration);
 
         Task ReceiveAsync(object message);
-        void Tell(PID target, object message);
-        void Request(PID target, object message);
+        Task SendAsync(PID target, object message);
+        Task RequestAsync(PID target, object message);
         Task<T> RequestAsync<T>(PID target, object message, TimeSpan timeout);
         Task<T> RequestAsync<T>(PID target, object message, CancellationToken cancellationToken);
         Task<T> RequestAsync<T>(PID target, object message);

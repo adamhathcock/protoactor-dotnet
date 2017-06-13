@@ -18,8 +18,8 @@ namespace Proto.Mailbox
 
     public interface IMailbox
     {
-        void PostUserMessage(object msg);
-        void PostSystemMessage(object msg);
+        Task PostUserMessageAsync(object msg);
+        Task PostSystemMessageAsync(object msg);
         void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher);
         void Start();
     }
@@ -60,24 +60,24 @@ namespace Proto.Mailbox
             _stats = stats ?? new IMailboxStatistics[0];
         }
 
-        public void PostUserMessage(object msg)
+        public async Task PostUserMessageAsync(object msg)
         {
             _userMailbox.Push(msg);
             for (var i = 0; i < _stats.Length; i++)
             {
                 _stats[i].MessagePosted(msg);
             }
-            Schedule();
+            await ScheduleAsync();
         }
 
-        public void PostSystemMessage(object msg)
+        public async Task PostSystemMessageAsync(object msg)
         {
             _systemMessages.Push(msg);
             for (var i = 0; i < _stats.Length; i++)
             {
                 _stats[i].MessagePosted(msg);
             }
-            Schedule();
+            await ScheduleAsync();
         }
 
         public void RegisterHandlers(IMessageInvoker invoker, IDispatcher dispatcher)
@@ -94,19 +94,21 @@ namespace Proto.Mailbox
             }
         }
 
-        private Task RunAsync()
+        private async Task RunAsync()
         {
-            var done = ProcessMessages();
+            var done = await ProcessMessagesAsync();
 
             if (!done)
+            {
                 // mailbox is halted, awaiting completion of a message task, upon which mailbox will be rescheduled
-                return Task.FromResult(0);
+                return;
+            }
 
             Interlocked.Exchange(ref _status, MailboxStatus.Idle);
 
             if (_systemMessages.HasMessages || (!_suspended && _userMailbox.HasMessages))
             {
-                Schedule();
+                await ScheduleAsync();
             }
             else
             {
@@ -115,10 +117,9 @@ namespace Proto.Mailbox
                     _stats[i].MailboxEmpty();
                 }
             }
-            return Task.FromResult(0);
         }
 
-        private bool ProcessMessages()
+        private async Task<bool> ProcessMessagesAsync()
         {
             object msg = null;
             try
@@ -138,13 +139,13 @@ namespace Proto.Mailbox
                         var t = _invoker.InvokeSystemMessageAsync(msg);
                         if (t.IsFaulted)
                         {
-                            _invoker.EscalateFailure(t.Exception, msg);
+                            await _invoker.EscalateFailureAsync(t.Exception, msg);
                             continue;
                         }
                         if (!t.IsCompleted)
                         {
                             // if task didn't complete immediately, halt processing and reschedule a new run when task completes
-                            t.ContinueWith(RescheduleOnTaskComplete, msg);
+                            t.ContinueWith(RescheduleOnTaskCompleteAsync, msg);
                             return false;
                         }
                         for (var si = 0; si < _stats.Length; si++)
@@ -162,13 +163,13 @@ namespace Proto.Mailbox
                         var t = _invoker.InvokeUserMessageAsync(msg);
                         if (t.IsFaulted)
                         {
-                            _invoker.EscalateFailure(t.Exception, msg);
+                            await _invoker.EscalateFailureAsync(t.Exception, msg);
                             continue;
                         }
                         if (!t.IsCompleted)
                         {
                             // if task didn't complete immediately, halt processing and reschedule a new run when task completes
-                            t.ContinueWith(RescheduleOnTaskComplete, msg);
+                            t.ContinueWith(RescheduleOnTaskCompleteAsync, msg);
                             return false;
                         }
                         for (var si = 0; si < _stats.Length; si++)
@@ -184,16 +185,16 @@ namespace Proto.Mailbox
             }
             catch (Exception e)
             {
-                _invoker.EscalateFailure(e, msg);
+                await _invoker.EscalateFailureAsync(e, msg);
             }
             return true;
         }
 
-        private void RescheduleOnTaskComplete(Task task, object message)
+        private async Task RescheduleOnTaskCompleteAsync(Task task, object message)
         {
             if (task.IsFaulted)
             {
-                _invoker.EscalateFailure(task.Exception, message);
+                await _invoker.EscalateFailureAsync(task.Exception, message);
             }
             else
             {
@@ -202,15 +203,15 @@ namespace Proto.Mailbox
                     _stats[si].MessageReceived(message);
                 }
             }
-            _dispatcher.Schedule(RunAsync);
+            await _dispatcher.ScheduleAsync(RunAsync);
         }
 
 
-        protected void Schedule()
+        protected async Task ScheduleAsync()
         {
             if (Interlocked.CompareExchange(ref _status, MailboxStatus.Busy, MailboxStatus.Idle) == MailboxStatus.Idle)
             {
-                _dispatcher.Schedule(RunAsync);
+                await _dispatcher.ScheduleAsync(RunAsync);
             }
         }
     }

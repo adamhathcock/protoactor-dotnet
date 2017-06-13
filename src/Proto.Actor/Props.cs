@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Proto.Mailbox;
 
 namespace Proto
@@ -36,7 +37,7 @@ namespace Proto
             private set => _spawner = value;
         }
 
-        public static Spawner DefaultSpawner = (name, props, parent) =>
+        public static Spawner DefaultSpawner = async (name, props, parent) =>
         {
             var ctx = new Context(props.Producer, props.SupervisorStrategy, props.ReceiveMiddlewareChain, props.SenderMiddlewareChain, parent);
             var mailbox = props.MailboxProducer();
@@ -49,7 +50,7 @@ namespace Proto
             }
             ctx.Self = pid;
             mailbox.RegisterHandlers(ctx, dispatcher);
-            mailbox.PostSystemMessage(Started.Instance);
+            await mailbox.PostSystemMessageAsync(Started.Instance);
             mailbox.Start();
 
             return pid;
@@ -97,8 +98,8 @@ namespace Proto
             return props;
         }
 
-        internal PID Spawn(string name, PID parent) => Spawner(name, this, parent);
+        internal async Task<PID> SpawnAsync(string name, PID parent) => await Spawner(name, this, parent);
     }
 
-    public delegate PID Spawner(string id, Props props, PID parent);
+    public delegate Task<PID> Spawner(string id, Props props, PID parent);
 }
